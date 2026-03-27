@@ -1,0 +1,32 @@
+#python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+#virtual environment
+.venv/
+
+#uv
+.uv/
+
+#data
+data/images/
+data/index.faiss
+data/metadata.csv
+
+#jupyter
+.ipynb_checkpoints/
+
+#huggingface model cache
+.cache/
+
+#os
+.DS_Store
+Thumbs.db
+
+#ide
+.vscode/
+.idea/
