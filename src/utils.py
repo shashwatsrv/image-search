@@ -1,4 +1,4 @@
-from PIL import image
+from PIL import Image
 import os
 
 def load_image(image_path:str)-> Image.Image:
@@ -13,10 +13,10 @@ def get_image_paths(folder_path:str)-> list:
     valid_exts={".jpg",".jpeg",".png",".webp",".bmp"}
     image_paths=[]
 
-    for fname in os.listdir(folder_path):
-        ext=os.path.splitext(fname)[1].lower()
+    for filename in os.listdir(folder_path):
+        ext=os.path.splitext(filename)[1].lower()
         if ext in valid_exts:
-            full_path=os.path.join(folder_path,fname)
+            full_path=os.path.join(folder_path,filename)
             image_paths.append(full_path)
 
         if len(image_paths)==0:

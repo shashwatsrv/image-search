@@ -12,10 +12,8 @@ wheels/
 #uv
 .uv/
 
-#data
-data/images/
-data/index.faiss
-data/metadata.csv
+data/
+logs/
 
 #jupyter
 .ipynb_checkpoints/
