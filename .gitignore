@@ -17,6 +17,8 @@ logs/
 
 #jupyter
 .ipynb_checkpoints/
+query_s1.ipynb
+
 
 #huggingface model cache
 .cache/

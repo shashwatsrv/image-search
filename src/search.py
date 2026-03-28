@@ -19,11 +19,10 @@ def search(query:Image.Image | str,k:int=5):
 
     results=[]
     for idx,score in zip(indices[0],distances[0]):
-        row=metadata.ilox[idx]
+        row=metadata.iloc[idx]
         results.append({
             "index":int(idx),
             "score":float(score),
-            "path":row.get("path",""),
             "class_name":row.get("class_name","")
         })
     return results
