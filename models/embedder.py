@@ -11,22 +11,25 @@ model = CLIPModel.from_pretrained(MODEL_NAME).to(device)
 processor = CLIPProcessor.from_pretrained(MODEL_NAME)
 model.eval()
 
+
 def embed_image(image: Image.Image) -> np.ndarray:
-    inputs = processor(images=image, return_tensors="pt")
+    image = image.convert("RGB")
+    inputs = processor(images=[image], return_tensors="pt")
     inputs = {k: v.to(device) for k, v in inputs.items()}
+
     with torch.no_grad():
         vector = model.get_image_features(**inputs)
-    if not isinstance(vector, torch.Tensor):
-        vector = vector.pooler_output
+
     vector = vector / vector.norm(dim=-1, keepdim=True)
-    return vector.squeeze().cpu().numpy()
+    return vector.squeeze().cpu().numpy().astype("float32")
+
 
 def embed_text(text: str) -> np.ndarray:
-    inputs = processor(text=text, return_tensors="pt", padding=True)
+    inputs = processor(text=[text], return_tensors="pt", padding=True)
     inputs = {k: v.to(device) for k, v in inputs.items()}
+
     with torch.no_grad():
         vector = model.get_text_features(**inputs)
-    if not isinstance(vector, torch.Tensor):
-        vector = vector.pooler_output
+
     vector = vector / vector.norm(dim=-1, keepdim=True)
-    return vector.squeeze().cpu().numpy()
+    return vector.squeeze().cpu().numpy().astype("float32")

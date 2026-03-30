@@ -8,19 +8,17 @@ def load_image(image_path:str)-> Image.Image:
     image=Image.open(image_path).convert("RGB")
     return image
 
-def get_image_paths(folder_path:str)-> list:
-    #supported img formats
-    valid_exts={".jpg",".jpeg",".png",".webp",".bmp"}
-    image_paths=[]
+def get_image_paths(folder_path: str) -> list:
+    valid_exts = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+    image_paths = []
 
-    for filename in os.listdir(folder_path):
-        ext=os.path.splitext(filename)[1].lower()
-        if ext in valid_exts:
-            full_path=os.path.join(folder_path,filename)
-            image_paths.append(full_path)
+    for root, _, files in os.walk(folder_path):
+        for filename in files:
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in valid_exts:
+                image_paths.append(os.path.join(root, filename))
 
-    if len(image_paths)==0:
-        raise ValueError(f"No image found in folder: {folder_path}")
+    if len(image_paths) == 0:
+        raise ValueError(f"No images found in folder: {folder_path}")
 
     return sorted(image_paths)
-

@@ -14,15 +14,17 @@ def search(query:Image.Image | str,k:int=5):
     else:
         vector=embed_image(query)
 
-    vector=vector.reshape(1,-1).astype("float32")
+    vector = vector.reshape(1, -1).astype("float32")
+    faiss.normalize_L2(vector)
     distances,indices=index.search(vector,k)
 
     results=[]
     for idx,score in zip(indices[0],distances[0]):
         row=metadata.iloc[idx]
         results.append({
-            "index":int(idx),
-            "score":float(score),
-            "class_name":row.get("class_name","")
-        })
+    "index": int(idx),
+    "score": float(score),
+    "class_name": row.get("class_name", ""),
+    "image_path": row.get("image_path", "")
+    })
     return results
