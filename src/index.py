@@ -11,9 +11,6 @@ def build_index(embeddings: np.ndarray) -> faiss.Index:
     #ensure correct dtype
     embeddings = embeddings.astype("float32")
 
-    #for cosine similarity
-    faiss.normalize_L2(embeddings)
-
     dimension = embeddings.shape[1]
     index = faiss.IndexFlatIP(dimension)
 

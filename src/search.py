@@ -15,7 +15,6 @@ def search(query:Image.Image | str,k:int=5):
         vector=embed_image(query)
 
     vector = vector.reshape(1, -1).astype("float32")
-    faiss.normalize_L2(vector)
     distances,indices=index.search(vector,k)
 
     results=[]

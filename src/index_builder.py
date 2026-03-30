@@ -3,15 +3,15 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from models.embedder import embed_image
+from models.embedder import embed_images_batch
 from src.utils import load_image, get_image_paths
 from src.index import build_index, save_index
 
 
-DATA_DIR = "data/intel"           # change if needed
+DATA_DIR = "data/intel"           #change if needed
 INDEX_PATH = "data/index.faiss"
 METADATA_PATH = "data/metadata.csv"
-
+BATCH_SIZE = 32 
 
 def build_pipeline(data_dir: str = DATA_DIR):
     print("[INFO] Scanning images...")
@@ -24,17 +24,23 @@ def build_pipeline(data_dir: str = DATA_DIR):
 
     print("[INFO] Generating embeddings...")
 
-    for path in tqdm(image_paths):
-        try:
-            image = load_image(path)
-            vec = embed_image(image)
-
-            embeddings.append(vec)
-            valid_paths.append(path)
-
-        except Exception as e:
-            print(f"[WARNING] Skipping {path}: {e}")
-
+    for i in tqdm(range(0, len(image_paths), BATCH_SIZE)):
+        batch_paths = image_paths[i:i + BATCH_SIZE]
+        images = []
+        batch_valid_paths = [] 
+        for p in batch_paths:
+            try:
+                img=load_image(p)
+                images.append(img)
+                batch_valid_paths.append(p)
+            except Exception as e:
+                print(f"[WARNING] Failed to load {p}: {e}")
+        if len(images) == 0:
+            continue
+        vecs = embed_images_batch(images)
+        embeddings.append(vecs)
+        valid_paths.extend(batch_valid_paths)
+                
     embeddings = np.vstack(embeddings).astype("float32")
 
     print("[INFO] Building FAISS index...")
