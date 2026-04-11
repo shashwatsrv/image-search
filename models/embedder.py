@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
+from src.utils import load_image
 
 MODEL_NAME = "openai/clip-vit-base-patch16"
 
@@ -51,3 +52,15 @@ def embed_images_batch(images) -> np.ndarray:
 
     vectors = normalize(vectors)
     return vectors.cpu().numpy().astype("float32")
+
+def embed_query(query):
+    if isinstance(query, str):
+        try:
+            img=load_image(query)
+            return embed_image(img)
+        except:
+            return embed_text(query)
+    elif isinstance(query, Image.Image):
+        return embed_image(query)
+    else:
+        raise ValueError("Query must be a string or a PIL Image.")

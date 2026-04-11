@@ -8,7 +8,7 @@ from src.utils import load_image, get_image_paths
 from src.index import build_index, save_index
 
 
-DATA_DIR = "data/intel"           #change if needed
+DATA_DIR = "data/intel/seg_test"           #change if needed
 INDEX_PATH = "data/index.faiss"
 METADATA_PATH = "data/metadata.csv"
 BATCH_SIZE = 32 
@@ -53,7 +53,7 @@ def build_pipeline(data_dir: str = DATA_DIR):
 
     metadata = pd.DataFrame({
         "image_path": valid_paths,
-        "class_name": [os.path.basename(os.path.dirname(p)) for p in valid_paths]
+        "class_name": [os.path.normpath(p).split(os.sep)[-2] for p in valid_paths]
     })
 
     metadata.to_csv(METADATA_PATH, index=False)
