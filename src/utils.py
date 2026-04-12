@@ -1,5 +1,4 @@
 from PIL import Image
-from src.utils import load_image, get_image_paths
 import os
 
 def load_image(image_path:str)-> Image.Image:

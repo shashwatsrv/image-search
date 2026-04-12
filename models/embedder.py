@@ -1,4 +1,5 @@
 import torch
+import os
 import numpy as np
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
@@ -55,10 +56,10 @@ def embed_images_batch(images) -> np.ndarray:
 
 def embed_query(query):
     if isinstance(query, str):
-        try:
+        if os.path.exists(query):
             img=load_image(query)
             return embed_image(img)
-        except:
+        else:
             return embed_text(query)
     elif isinstance(query, Image.Image):
         return embed_image(query)
