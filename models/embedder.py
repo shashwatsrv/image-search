@@ -15,8 +15,7 @@ model.eval()
 
 
 def normalize(vector: torch.Tensor) -> torch.Tensor:
-    return vector / vector.norm(dim=-1, keepdim=True)
-
+    return vector / (vector.norm(dim=-1, keepdim=True) + 1e-8)
 
 def embed_image(image: Image.Image) -> np.ndarray:
     image = image.convert("RGB")
@@ -52,8 +51,8 @@ def embed_images_batch(images) -> np.ndarray:
         vectors = model.get_image_features(**inputs)
 
     vectors = normalize(vectors)
-    return vectors.cpu().numpy().astype("float32")
 
+    
 def embed_query(query):
     if isinstance(query, str):
         if os.path.exists(query):

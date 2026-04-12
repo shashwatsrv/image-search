@@ -3,23 +3,32 @@ import numpy as np
 import os
 
 
-def build_index(embeddings: np.ndarray) -> faiss.Index:
+def build_index(embeddings: np.ndarray, index_type: str = "flat") -> faiss.Index:
 
     if embeddings.ndim != 2:
-        raise ValueError("Embeddings must be a 2D array of shape (N, D)")
+        raise ValueError("Embeddings must be 2D (N, D)")
 
-    #ensure correct dtype
     embeddings = embeddings.astype("float32")
 
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatIP(dimension)
+    faiss.normalize_L2(embeddings)
+
+    d = embeddings.shape[1]
+
+    if index_type == "flat":
+        index = faiss.IndexFlatIP(d)
+
+    elif index_type == "hnsw":
+        index = faiss.IndexHNSWFlat(d, 32)
+        index.hnsw.efConstruction = 200
+
+    else:
+        raise ValueError("Unknown index type")
 
     index.add(embeddings)
 
-    print(f"[INFO] Indexed {index.ntotal} vectors with dimension {dimension}")
+    print(f"[INFO] Indexed {index.ntotal} vectors with dimension {d}")
 
     return index
-
 
 def save_index(index: faiss.Index, path: str = "data/index.faiss"):
 #save faiss index to disk

@@ -3,17 +3,23 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+import argparse #cli driven index building
+
 from models.embedder import embed_images_batch
 from src.utils import load_image, get_image_paths
 from src.index import build_index, save_index
 
 
+
 DATA_DIR = "data/intel/seg_test"           #change if needed
-INDEX_PATH = "data/index.faiss"
-METADATA_PATH = "data/metadata.csv"
 BATCH_SIZE = 32 
 
-def build_pipeline(data_dir: str = DATA_DIR):
+def build_pipeline(data_dir: str = DATA_DIR, index_type: str = "flat"):
+
+    INDEX_PATH = f"data/index_{index_type}.faiss"
+    METADATA_PATH = f"data/metadata_{index_type}.csv"
+
+
     print("[INFO] Scanning images...")
     image_paths = get_image_paths(data_dir)
 
@@ -42,9 +48,11 @@ def build_pipeline(data_dir: str = DATA_DIR):
         valid_paths.extend(batch_valid_paths)
                 
     embeddings = np.vstack(embeddings).astype("float32")
+    embeddings = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-8)
+    np.save("data/embeddings.npy", embeddings) #save embeddings for later use (hnsw)
 
     print("[INFO] Building FAISS index...")
-    index = build_index(embeddings)
+    index = build_index(embeddings, index_type=index_type)
 
     print("[INFO] Saving index...")
     save_index(index, INDEX_PATH)
@@ -62,5 +70,11 @@ def build_pipeline(data_dir: str = DATA_DIR):
     print("[INFO] Pipeline complete ✅")
 
 
+
+
 if __name__ == "__main__":
-    build_pipeline()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--index", default="flat", choices=["flat", "hnsw"])
+    args = parser.parse_args()
+
+    build_pipeline(index_type=args.index)
