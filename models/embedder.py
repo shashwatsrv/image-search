@@ -5,7 +5,7 @@ from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 from src.utils import load_image
 
-MODEL_NAME = "openai/clip-vit-base-patch16"
+MODEL_NAME = "openai/clip-vit-large-patch14"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -43,7 +43,6 @@ def embed_text(text: str) -> np.ndarray:
 
 def embed_images_batch(images) -> np.ndarray:
     images = [img.convert("RGB") for img in images]
-
     inputs = processor(images=images, return_tensors="pt", padding=True)
     inputs = {k: v.to(device) for k, v in inputs.items()}
 
@@ -51,8 +50,8 @@ def embed_images_batch(images) -> np.ndarray:
         vectors = model.get_image_features(**inputs)
 
     vectors = normalize(vectors)
+    return vectors.squeeze().cpu().numpy().astype("float32") 
 
-    
 def embed_query(query):
     if isinstance(query, str):
         if os.path.exists(query):
