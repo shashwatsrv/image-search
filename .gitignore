@@ -1,4 +1,4 @@
-#python
+# python
 __pycache__/
 *.py[oc]
 build/
@@ -6,27 +6,33 @@ dist/
 wheels/
 *.egg-info
 
-#virtual environment
+# virtual environment
 .venv/
 
-#uv
+# uv
 .uv/
 
-data/
+# data (keep metadata, ignore heavy files)
+data/*
+!data/metadata_*.csv
+data/*.faiss
+data/*.npy
+data/.gitkeep
+
+# logs
 logs/
 
-#jupyter
+# jupyter
 .ipynb_checkpoints/
 query_s1.ipynb
 
-
-#huggingface model cache
+# huggingface cache
 .cache/
 
-#os
+# os
 .DS_Store
 Thumbs.db
 
-#ide
+# ide
 .vscode/
 .idea/
