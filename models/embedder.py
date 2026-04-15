@@ -24,7 +24,7 @@ def embed_image(image: Image.Image) -> np.ndarray:
 
     with torch.no_grad():
         vector = model.get_image_features(**inputs)
-
+    
     vector = normalize(vector)
 
     return vector.squeeze().cpu().numpy().astype("float32")
@@ -36,7 +36,7 @@ def embed_text(text: str) -> np.ndarray:
 
     with torch.no_grad():
         vector = model.get_text_features(**inputs)
-
+    
     vector = normalize(vector)
 
     return vector.squeeze().cpu().numpy().astype("float32")
@@ -48,9 +48,10 @@ def embed_images_batch(images) -> np.ndarray:
 
     with torch.no_grad():
         vectors = model.get_image_features(**inputs)
+    
+    vector = normalize(vector)
 
-    vectors = normalize(vectors)
-    return vectors.squeeze().cpu().numpy().astype("float32") 
+    return vectors.cpu().numpy().astype("float32") 
 
 def embed_query(query):
     if isinstance(query, str):
@@ -63,3 +64,24 @@ def embed_query(query):
         return embed_image(query)
     else:
         raise ValueError("Query must be a string or a PIL Image.")
+    
+def embed_multimodal(image=None, text=None, alpha=0.5):
+    vectors = []
+
+    if image is not None:
+        img_vec = embed_image(image)
+        vectors.append(alpha * img_vec)
+
+    if text is not None:
+        text_vec = embed_text(text)
+        vectors.append((1 - alpha) * text_vec)
+
+    if len(vectors) == 0:
+        raise ValueError("Provide at least image or text")
+
+    vec = sum(vectors)
+
+    # normalize final vector (IMPORTANT)
+    vec = vec / (np.linalg.norm(vec) + 1e-8)
+
+    return vec.astype("float32")

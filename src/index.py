@@ -10,10 +10,13 @@ def build_index(embeddings: np.ndarray, index_type: str = "flat") -> faiss.Index
 
     embeddings = embeddings.astype("float32")
 
-    faiss.normalize_L2(embeddings)
 
     d = embeddings.shape[1]
 
+    # normalise(cosine similarity setup)
+    faiss.normalize_L2(embeddings)
+
+    # create index
     if index_type == "flat":
         index = faiss.IndexFlatIP(d)
 
@@ -24,21 +27,21 @@ def build_index(embeddings: np.ndarray, index_type: str = "flat") -> faiss.Index
     else:
         raise ValueError("Unknown index type")
 
+    # add ONCE
     index.add(embeddings)
 
     print(f"[INFO] Indexed {index.ntotal} vectors with dimension {d}")
 
     return index
 
+
 def save_index(index: faiss.Index, path: str = "data/index.faiss"):
-#save faiss index to disk
     os.makedirs(os.path.dirname(path), exist_ok=True)
     faiss.write_index(index, path)
     print(f"[INFO] Index saved at {path}")
 
 
 def load_index(path: str = "data/index.faiss") -> faiss.Index:
-#load faiss index from disk
     if not os.path.exists(path):
         raise FileNotFoundError(f"Index file not found at {path}")
 
