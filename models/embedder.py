@@ -49,7 +49,7 @@ def embed_images_batch(images) -> np.ndarray:
     with torch.no_grad():
         vectors = model.get_image_features(**inputs)
     
-    vector = normalize(vector)
+    vectors = normalize(vectors)
 
     return vectors.cpu().numpy().astype("float32") 
 

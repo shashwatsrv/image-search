@@ -13,9 +13,6 @@ def build_index(embeddings: np.ndarray, index_type: str = "flat") -> faiss.Index
 
     d = embeddings.shape[1]
 
-    # normalise(cosine similarity setup)
-    faiss.normalize_L2(embeddings)
-
     # create index
     if index_type == "flat":
         index = faiss.IndexFlatIP(d)
