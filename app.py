@@ -8,6 +8,7 @@ from io import BytesIO
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
 from models.embedder import embed_text, embed_image, embed_multimodal
+from huggingface_hub import hf_hub_download
 import random
 
 EXAMPLE_PROMPTS = [
@@ -36,13 +37,22 @@ st.set_page_config(
 )
 
 # ── load once ─────────────────────────────────────────────────────────────────
+
 @st.cache_resource(show_spinner="Loading index…")
 def load_data():
-    embeddings = np.load("data/unsplash/embeddings_25k.npy")
-    ids        = np.load("data/unsplash/ids_25k.npy", allow_pickle=True)
-    index      = faiss.read_index("data/unsplash/index_hnsw_25k.faiss")
+    from huggingface_hub import hf_hub_download
+    repo = "shashwatsrv/unsplash-search-index"
 
-    df = pd.read_csv("data/unsplash_lite/photos.csv", sep="\t", on_bad_lines="skip")
+    emb_path = hf_hub_download(repo, "embeddings_25k.npy",   repo_type="dataset")
+    ids_path = hf_hub_download(repo, "ids_25k.npy",          repo_type="dataset")
+    idx_path = hf_hub_download(repo, "index_hnsw_25k.faiss", repo_type="dataset")
+    csv_path = hf_hub_download(repo, "photos.csv",           repo_type="dataset")
+
+    embeddings = np.load(emb_path)
+    ids        = np.load(ids_path, allow_pickle=True)
+    index      = faiss.read_index(idx_path)
+
+    df = pd.read_csv(csv_path, sep="\t", on_bad_lines="skip")
     df = df.dropna(subset=["photo_image_url"])
     df = df[df["photo_image_url"].str.startswith("https")]
     df = df.reset_index(drop=True)
