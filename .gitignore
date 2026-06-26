@@ -12,19 +12,14 @@ wheels/
 # uv
 .uv/
 
-# data (keep metadata, ignore heavy files)
-data/*
-!data/metadata_*.csv
-data/*.faiss
-data/*.npy
-data/.gitkeep
+# data
+data/
 
 # logs
 logs/
 
 # jupyter
 .ipynb_checkpoints/
-query_s1.ipynb
 
 # huggingface cache
 .cache/
