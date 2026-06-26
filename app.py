@@ -7,7 +7,7 @@ import requests
 from io import BytesIO
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
-from models.embedder import embed_text
+from models.embedder import embed_text, embed_image, embed_multimodal
 import random
 
 EXAMPLE_PROMPTS = [
@@ -81,13 +81,23 @@ def fetch_images_parallel(urls: list[str | None]) -> list[Image.Image]:
         return list(ex.map(fetch_image, urls))
 
 # ── search ────────────────────────────────────────────────────────────────────
-def search_text(query: str, k: int = 5):
-    vec = embed_text(query).reshape(1, -1).astype("float32")
+def search_vector(vec: np.ndarray, k: int = 9):
+    """Core search — accepts any pre-computed embedding vector."""
+    vec = vec.reshape(1, -1).astype("float32")
     distances, indices = index.search(vec, k)
     sims   = 1 - (distances[0] ** 2) / 2
     scores = (sims + 1) / 2
     photo_ids = [ids[i] for i in indices[0]]
     return photo_ids, scores
+
+def search_text(query: str, k: int = 9):
+    return search_vector(embed_text(query), k)
+
+def search_img(img: Image.Image, k: int = 9):
+    return search_vector(embed_image(img), k)
+
+def search_combined(img: Image.Image, text: str, alpha: float, k: int = 9):
+    return search_vector(embed_multimodal(image=img, text=text, alpha=alpha), k)
 
 # ── session state ─────────────────────────────────────────────────────────────
 if "history" not in st.session_state:
@@ -96,6 +106,8 @@ if "query" not in st.session_state:
     st.session_state.query = ""
 if "example_prompt" not in st.session_state:
     st.session_state.example_prompt = random.choice(EXAMPLE_PROMPTS)
+if "results" not in st.session_state:
+    st.session_state.results = None   # (photo_ids, scores) or None
 
 def run_search(q: str):
     q = q.strip()
@@ -110,46 +122,94 @@ def run_search(q: str):
 st.title("🔍 Semantic Image Search")
 st.caption("Powered by CLIP embeddings + FAISS HNSW · Unsplash Lite dataset")
 
-# st.form intercepts the Enter key reliably
-with st.form(key="search_form", border=False):
-    col_input, col_btn = st.columns([5, 1])
-    with col_input:
-        typed = st.text_input(
-            "Query",
-            value=st.session_state.query,
-            placeholder=f"e.g. {st.session_state.example_prompt}",
-            label_visibility="collapsed",
-        )
-    with col_btn:
-        submitted = st.form_submit_button(
-            "Search", use_container_width=True, type="primary"
-        )
-
-if submitted:
-    # if the user typed nothing, fall back to the example prompt
-    effective_query = typed.strip() or st.session_state.example_prompt
-    run_search(effective_query)
-
 k = st.slider("Results to show", 1, 20, 9)
 
-# recent-search chips
-if st.session_state.history:
-    st.write("**Recent:**")
-    chip_cols = st.columns(len(st.session_state.history))
-    for i, past in enumerate(st.session_state.history):
-        if chip_cols[i].button(past, key=f"chip_{i}"):
-            run_search(past)
-            st.rerun()
+tab_text, tab_image, tab_combined = st.tabs(["🔤 Text", "🖼️ Image", "🔤 + 🖼️ Combined"])
 
-active_query = st.session_state.query
+# ── Tab 1: Text ───────────────────────────────────────────────────────────────
+with tab_text:
+    with st.form(key="search_form", border=False):
+        col_input, col_btn = st.columns([5, 1])
+        with col_input:
+            typed = st.text_input(
+                "Query",
+                placeholder=f"e.g. {st.session_state.example_prompt}",
+                label_visibility="collapsed",
+            )
+        with col_btn:
+            submitted = st.form_submit_button(
+                "Search", use_container_width=True, type="primary"
+            )
 
-# ── results ───────────────────────────────────────────────────────────────────
-if active_query:
-    with st.spinner(f'Searching for **"{active_query}"**…'):
-        photo_ids, scores = search_text(active_query, k)
+    if submitted:
+        effective_query = typed.strip() or st.session_state.example_prompt
+        run_search(effective_query)
+        with st.spinner(f'Searching for **"{effective_query}"**…'):
+            st.session_state.results = search_text(effective_query, k)
 
+    # recent-search chips
+    if st.session_state.history:
+        st.write("**Recent:**")
+        chip_cols = st.columns(len(st.session_state.history))
+        for i, past in enumerate(st.session_state.history):
+            if chip_cols[i].button(past, key=f"chip_{i}"):
+                run_search(past)
+                with st.spinner(f'Searching for **"{past}"**…'):
+                    st.session_state.results = search_text(past, k)
+                st.rerun()
+
+# ── Tab 2: Image ──────────────────────────────────────────────────────────────
+with tab_image:
+    uploaded = st.file_uploader(
+        "Upload an image to find visually similar photos",
+        type=["jpg", "jpeg", "png", "webp"],
+    )
+    if uploaded:
+        query_img = Image.open(uploaded).convert("RGB")
+        st.image(query_img, width=280, caption="Query image")
+        if st.button("Find similar images", type="primary"):
+            with st.spinner("Embedding image and searching…"):
+                st.session_state.results = search_img(query_img, k)
+            st.session_state.query = f"[image: {uploaded.name}]"
+
+# ── Tab 3: Combined ───────────────────────────────────────────────────────────
+with tab_combined:
+    st.caption("Upload an image AND add a text description — CLIP blends both into one query.")
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        combo_img = st.file_uploader(
+            "Image", type=["jpg", "jpeg", "png", "webp"], key="combo_img"
+        )
+        if combo_img:
+            st.image(Image.open(combo_img), width=220)
+    with col_b:
+        combo_text = st.text_input("Text refinement", placeholder="e.g. at night, in winter…")
+        alpha = st.slider(
+            "Image ← weight → Text",
+            min_value=0.0, max_value=1.0, value=0.7, step=0.05,
+            help="0 = text only, 1 = image only, 0.7 = mostly image with text hint",
+        )
+
+    if st.button("Search combined", type="primary"):
+        if not combo_img:
+            st.warning("Upload an image first.")
+        else:
+            pil_img = Image.open(combo_img).convert("RGB")
+            text_hint = combo_text.strip() or None
+            with st.spinner("Blending embeddings and searching…"):
+                st.session_state.results = search_combined(pil_img, text_hint, alpha, k)
+            label = f"[image + '{text_hint}']" if text_hint else "[image]"
+            st.session_state.query = label
+
+# ── Results (shared across all tabs) ─────────────────────────────────────────
+if st.session_state.results:
+    photo_ids, scores = st.session_state.results
     urls   = [meta.get(pid, {}).get("photo_image_url") for pid in photo_ids]
     images = fetch_images_parallel(urls)
+
+    st.divider()
+    if st.session_state.query:
+        st.markdown(f"**Results for:** {st.session_state.query}")
 
     n_cols  = min(4, k)
     columns = st.columns(n_cols)
